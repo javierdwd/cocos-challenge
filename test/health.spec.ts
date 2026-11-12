@@ -1,14 +1,18 @@
 import 'reflect-metadata';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import request from 'supertest';
+import { ConsoleLogger } from '@nestjs/common';
+import { NestFactory } from '@nestjs/core';
 import type { INestApplication } from '@nestjs/common';
-import { createApp } from '../src/app.js';
+import { HealthModule } from '../src/health/health.module.js';
 
 describe('GET /health', () => {
   let app: INestApplication;
 
   beforeAll(async () => {
-    app = await createApp();
+    app = await NestFactory.create(HealthModule, {
+      logger: new ConsoleLogger({ json: true }),
+    });
     await app.init();
   });
 

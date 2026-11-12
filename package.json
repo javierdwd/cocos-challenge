@@ -8,7 +8,8 @@
     "npm": ">=11 <12"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "npm run prisma:generate && tsc -p tsconfig.build.json",
+    "prisma:generate": "prisma generate",
     "start": "node dist/main.js",
     "start:dev": "nest start --watch",
     "test": "vitest run"
@@ -17,8 +18,11 @@
     "@nestjs/common": "12.5.0",
     "@nestjs/core": "12.5.0",
     "@nestjs/platform-express": "12.5.0",
+    "@prisma/adapter-pg": "7.10.1",
+    "@prisma/client": "7.10.1",
     "class-transformer": "0.5.1",
     "class-validator": "0.15.1",
+    "pg": "8.16.3",
     "reflect-metadata": "0.2.2",
     "rxjs": "7.8.2"
   },
@@ -26,6 +30,7 @@
     "@nestjs/cli": "12.0.12",
     "@types/node": "24.10.0",
     "@types/supertest": "7.2.1",
+    "prisma": "7.10.1",
     "supertest": "7.3.2",
     "typescript": "5.9.3",
     "vitest": "4.1.11"
