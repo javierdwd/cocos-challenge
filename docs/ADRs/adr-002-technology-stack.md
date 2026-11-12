@@ -3,7 +3,7 @@
 - Date: 2026-11-12
 - Status: Accepted
 - Related requirements: [Technical considerations and functional order test](../PRD.md)
-- GitHub issue: None yet.
+- GitHub issue: [#1 — Bootstrap NestJS API with a health endpoint](https://github.com/javierdwd/cocos-challenge/issues/1).
 
 ## Context and options
 
