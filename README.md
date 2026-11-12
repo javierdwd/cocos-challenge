@@ -50,7 +50,7 @@ The server listens on port 3000 by default. Set `PORT` to choose another port. F
 curl -i http://localhost:3000/health
 ```
 
-`GET /health` returns HTTP 200 with `{"status":"ok"}`. It checks that the API process is running; it does not run a database query. The API connects to PostgreSQL during startup, so a failed database connection prevents it from becoming ready. Startup logs use NestJS's JSON console logger and are written to stdout, one JSON record per line. The application registers a global `ValidationPipe` with transformation and strict DTO property checks. DTO validation errors use the PRD error envelope.
+`GET /health` returns HTTP 200 with `{"status":"ok"}`. It checks that the API process is running; it does not run a database query. The API connects to PostgreSQL during startup, so a failed database connection prevents it from becoming ready. Startup logs use NestJS's JSON console logger and are written to stdout, one JSON record per line. The application registers a global `ValidationPipe` with transformation and strict DTO property checks. API errors use the PRD error envelope.
 
 `GET /instruments?query=pat&page=1&pageSize=20` searches share tickers and names by a trimmed, case-insensitive substring. `query` is required; `page` defaults to 1 and `pageSize` to 20, with a maximum of 100. Invalid parameters return HTTP 400 with `{"error":{"code":"VALIDATION_ERROR","message":"Invalid request parameters"}}`. Results exclude ARS, sort by ticker then ID, and return `data` (`id`, `ticker`, `name`, `type`) plus `pagination` (`page`, `pageSize`, `totalItems`, `totalPages`).
 

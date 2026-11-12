@@ -147,4 +147,26 @@ describe('GET /instruments', () => {
     });
     expect(findMany).not.toHaveBeenCalled();
   });
+
+  it('uses the error envelope and hides database details on failure', async () => {
+    count.mockRejectedValue(new Error('database credentials are unavailable'));
+
+    const response = await request(app.getHttpServer()).get('/instruments').query({ query: 'pat' });
+
+    expect(response.status).toBe(500);
+    expect(response.body).toEqual({
+      error: { code: 'INTERNAL_ERROR', message: 'Internal server error' },
+    });
+    expect(findMany).not.toHaveBeenCalled();
+  });
+
+  it('uses the error envelope for an unknown route', async () => {
+    const response = await request(app.getHttpServer()).get('/missing');
+
+    expect(response.status).toBe(404);
+    expect(response.body.error).toEqual({
+      code: 'NOT_FOUND',
+      message: 'Cannot GET /missing',
+    });
+  });
 });

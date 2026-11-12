@@ -2,6 +2,7 @@ import { BadRequestException, ConsoleLogger, ValidationPipe } from '@nestjs/comm
 import { NestFactory } from '@nestjs/core';
 import type { INestApplication } from '@nestjs/common';
 import { AppModule } from './app.module.js';
+import { ApiExceptionFilter } from './common/api-exception.filter.js';
 
 export async function createApp(): Promise<INestApplication> {
   const app = await NestFactory.create(AppModule, {
@@ -13,6 +14,7 @@ export async function createApp(): Promise<INestApplication> {
 }
 
 export function configureApp(app: INestApplication): void {
+  app.useGlobalFilters(new ApiExceptionFilter());
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
