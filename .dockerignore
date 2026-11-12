@@ -1,0 +1,10 @@
+.git
+.agents
+.codex
+.env
+.env.*
+node_modules
+dist
+coverage
+.npm-cache
+*.log
