@@ -14,7 +14,6 @@ export class InstrumentsService {
     const literalQuery = query.replace(/[\\%_]/g, '\\$&');
     const where = {
       type: 'ACCIONES',
-      NOT: { ticker: { equals: 'ARS', mode: 'insensitive' as const } },
       OR: [
         { ticker: { contains: literalQuery, mode: 'insensitive' as const } },
         { name: { contains: literalQuery, mode: 'insensitive' as const } },

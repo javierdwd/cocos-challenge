@@ -51,7 +51,6 @@ describe('GET /instruments', () => {
     expect(count).toHaveBeenCalledWith({
       where: {
         type: 'ACCIONES',
-        NOT: { ticker: { equals: 'ARS', mode: 'insensitive' } },
         OR: [
           { ticker: { contains: 'bAn', mode: 'insensitive' } },
           { name: { contains: 'bAn', mode: 'insensitive' } },
