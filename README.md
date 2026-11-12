@@ -22,9 +22,18 @@ docker compose up -d db
 set -a; . ./.env; set +a
 export DATABASE_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:${DB_HOST_PORT:-55432}/${POSTGRES_DB}"
 npm ci
+npm run prisma:migrate:deploy
 npm run build
 npm start
 ```
+
+`prisma:migrate:deploy` applies pending versioned migrations and is safe to run again. To verify the movement view and database constraints against a migrated PostgreSQL database, run:
+
+```bash
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f test/portfolio-movements.sql
+```
+
+The smoke test rolls back its fixture rows. `portfolio_movements` exposes `source_type`, `source_id`, `user_id`, nullable `instrument_id`, `movement_type`, `share_delta`, `cash_delta_ars`, and `datetime` for FILLED trades and transfers.
 
 The server listens on port 3000 by default. Set `PORT` to choose another port. For development with automatic rebuild and restart, run `npm run start:dev` instead of `npm start`. `npm run build` generates Prisma Client before compiling; `npm run prisma:generate` regenerates it after a schema change. Run `npm test` for the HTTP health test.
 
@@ -42,11 +51,11 @@ After creating `.env` as above, run:
 docker compose up --build
 ```
 
-Compose starts PostgreSQL, waits for its health check, and then starts the API with an internal database URL. The API is available at `http://localhost:3000/health`. Set `API_HOST_PORT` to change the host port, or `API_PORT` to change the port inside the container. Compose passes `API_PORT` to the application as `PORT`; both settings default to 3000. The database is exposed only on loopback at port 55432; set `DB_HOST_PORT` to change that port. For example:
+Compose starts PostgreSQL, runs pending Prisma migrations in a one-off container, and then starts the API with an internal database URL. Repeating `docker compose up --build` safely replays migration setup without reapplying completed migrations. The API is available at `http://localhost:3000/health`. Set `API_HOST_PORT` to change the host port, or `API_PORT` to change the port inside the container. Compose passes `API_PORT` to the application as `PORT`; both settings default to 3000. The database is exposed only on loopback at port 55432; set `DB_HOST_PORT` to change that port. For example:
 
 ```bash
 API_HOST_PORT=8080 docker compose up --build
 curl -i http://localhost:8080/health
 ```
 
-The image builds with the npm lockfile on Node.js 24, generates Prisma Client during the build, installs only production dependencies in the runtime image, and runs as the non-root `node` user. The Docker health check calls `GET /health`. PostgreSQL data persists in the `postgres_data` volume across `docker compose down` and restarts. Use `docker compose down --volumes` only when intentionally resetting local data. This stage configures the database connection and Prisma Client; application tables, migrations, and seed data will arrive in later implementation stages.
+The image builds with the npm lockfile on Node.js 24 and generates Prisma Client during the build. The migration container has the Prisma CLI; the API runtime installs only production dependencies and runs as the non-root `node` user. The Docker health check calls `GET /health`. PostgreSQL data persists in the `postgres_data` volume across `docker compose down` and restarts. Use `docker compose down --volumes` only when intentionally resetting local data. The initial migration creates the six application tables and the `portfolio_movements` view. Seed data and product endpoints arrive in later implementation stages.

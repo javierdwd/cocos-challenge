@@ -8,3 +8,111 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+enum OrderSide {
+  BUY
+  SELL
+}
+
+enum OrderType {
+  MARKET
+  LIMIT
+}
+
+enum MovementStatus {
+  NEW
+  FILLED
+  REJECTED
+  CANCELLED
+}
+
+enum CashMovementSide {
+  CASH_IN
+  CASH_OUT
+}
+
+model User {
+  id                  Int                  @id @default(autoincrement())
+  email               String               @unique
+  accountNumber       String               @unique @map("account_number")
+  orders              Order[]
+  cashMovements       CashMovement[]
+  idempotencyRequests IdempotencyRequest[]
+
+  @@map("users")
+}
+
+model Instrument {
+  id         Int          @id @default(autoincrement())
+  ticker     String       @unique
+  name       String
+  type       String
+  orders     Order[]
+  marketdata MarketData[]
+
+  @@map("instruments")
+}
+
+model Order {
+  id                 Int                 @id @default(autoincrement())
+  instrumentId       Int                 @map("instrument_id")
+  userId             Int                 @map("user_id")
+  side               OrderSide
+  size               Int
+  price              Decimal             @db.Decimal(18, 2)
+  type               OrderType
+  status             MovementStatus
+  datetime           DateTime            @default(now()) @db.Timestamptz(3)
+  rejectionReason    String?             @map("rejection_reason")
+  instrument         Instrument          @relation(fields: [instrumentId], references: [id])
+  user               User                @relation(fields: [userId], references: [id])
+  idempotencyRequest IdempotencyRequest?
+
+  @@index([userId, datetime])
+  @@index([instrumentId])
+  @@map("orders")
+}
+
+model MarketData {
+  id            Int        @id @default(autoincrement())
+  instrumentId  Int        @map("instrument_id")
+  high          Decimal    @db.Decimal(18, 2)
+  low           Decimal    @db.Decimal(18, 2)
+  open          Decimal    @db.Decimal(18, 2)
+  close         Decimal    @db.Decimal(18, 2)
+  previousClose Decimal?   @map("previous_close") @db.Decimal(18, 2)
+  datetime      DateTime   @db.Timestamptz(3)
+  instrument    Instrument @relation(fields: [instrumentId], references: [id])
+
+  @@unique([instrumentId, datetime])
+  @@map("marketdata")
+}
+
+model CashMovement {
+  id       Int              @id @default(autoincrement())
+  userId   Int              @map("user_id")
+  side     CashMovementSide
+  amount   Decimal          @db.Decimal(18, 2)
+  status   MovementStatus
+  datetime DateTime         @default(now()) @db.Timestamptz(3)
+  user     User             @relation(fields: [userId], references: [id])
+
+  @@index([userId, datetime])
+  @@map("cash_movements")
+}
+
+model IdempotencyRequest {
+  id           Int      @id @default(autoincrement())
+  userId       Int      @map("user_id")
+  key          String
+  fingerprint  String
+  orderId      Int      @unique @map("order_id")
+  httpStatus   Int      @map("http_status")
+  responseBody String   @map("response_body")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  user         User     @relation(fields: [userId], references: [id])
+  order        Order    @relation(fields: [orderId], references: [id])
+
+  @@unique([userId, key])
+  @@map("idempotency_requests")
+}
