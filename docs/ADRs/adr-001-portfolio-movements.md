@@ -3,7 +3,7 @@
 - Date: 2026-11-12
 - Status: Accepted
 - Related requirements: [Portfolio, orders, and cash transfers](../PRD.md)
-- GitHub issue: None yet.
+- GitHub issue: [#4 — Create the database schema and portfolio movement view](https://github.com/javierdwd/cocos-challenge/issues/4).
 
 ## Context
 
