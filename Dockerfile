@@ -10,6 +10,7 @@ RUN npm ci
 COPY tsconfig.json tsconfig.build.json ./
 COPY prisma.config.ts ./
 COPY prisma ./prisma
+COPY scripts/seed.mjs ./scripts/seed.mjs
 COPY src ./src
 RUN npm run build
 

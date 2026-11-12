@@ -23,11 +23,20 @@ set -a; . ./.env; set +a
 export DATABASE_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:${DB_HOST_PORT:-55432}/${POSTGRES_DB}"
 npm ci
 npm run prisma:migrate:deploy
+npm run db:seed
 npm run build
 npm start
 ```
 
-`prisma:migrate:deploy` applies pending versioned migrations and is safe to run again. To verify the movement view and database constraints against a migrated PostgreSQL database, run:
+`prisma:migrate:deploy` applies pending versioned migrations. `db:seed` loads the three retained sample users, 65 share instruments, 126 historical quotes across July 13–14, 2023, and one FILLED CASH_IN of ARS 1,000,000.00 for account `10002`. It is safe to run again: existing sample rows and the opening transfer are not duplicated. Account `10001`, its orders, and the ARS instrument are excluded. PGR and IRCP have no quotes in the challenge sample. The two quotes with missing open, high, and low use their close for those fields, and prices are stored at two-decimal precision. The original sample is [the challenge SQL](https://github.com/cocoscap/cocos-challenge/blob/main/database.sql).
+
+Immediately after seeding a fresh database, verify the opening balances and movement signs with:
+
+```bash
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f test/seed.sql
+```
+
+The query prints `10002 | 1000000.00 | 0`, `10003 | 0.00 | 0`, and `10004 | 0.00 | 0` for account number, ARS cash, and shares. It also checks the source row and its positive cash and zero share deltas. To verify BUY, SELL, CASH_IN, and CASH_OUT signs and database constraints using rollback-only fixtures, run:
 
 ```bash
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f test/portfolio-movements.sql
@@ -51,11 +60,11 @@ After creating `.env` as above, run:
 docker compose up --build
 ```
 
-Compose starts PostgreSQL, runs pending Prisma migrations in a one-off container, and then starts the API with an internal database URL. Repeating `docker compose up --build` safely replays migration setup without reapplying completed migrations. The API is available at `http://localhost:3000/health`. Set `API_HOST_PORT` to change the host port, or `API_PORT` to change the port inside the container. Compose passes `API_PORT` to the application as `PORT`; both settings default to 3000. The database is exposed only on loopback at port 55432; set `DB_HOST_PORT` to change that port. For example:
+Compose starts PostgreSQL, runs pending Prisma migrations and the idempotent seed in a one-off container, and then starts the API with an internal database URL. Repeating `docker compose up --build` safely replays setup. The API is available at `http://localhost:3000/health`. Set `API_HOST_PORT` to change the host port, or `API_PORT` to change the port inside the container. Compose passes `API_PORT` to the application as `PORT`; both settings default to 3000. The database is exposed only on loopback at port 55432; set `DB_HOST_PORT` to change that port. For example:
 
 ```bash
 API_HOST_PORT=8080 docker compose up --build
 curl -i http://localhost:8080/health
 ```
 
-The image builds with the npm lockfile on Node.js 24 and generates Prisma Client during the build. The migration container has the Prisma CLI; the API runtime installs only production dependencies and runs as the non-root `node` user. The Docker health check calls `GET /health`. PostgreSQL data persists in the `postgres_data` volume across `docker compose down` and restarts. Use `docker compose down --volumes` only when intentionally resetting local data. The initial migration creates the six application tables and the `portfolio_movements` view. Seed data and product endpoints arrive in later implementation stages.
+The image builds with the npm lockfile on Node.js 24 and generates Prisma Client during the build. The migration container has the Prisma CLI and seed script; the API runtime installs only production dependencies and runs as the non-root `node` user. The Docker health check calls `GET /health`. PostgreSQL data persists in the `postgres_data` volume across `docker compose down` and restarts. Use `docker compose down --volumes` only when intentionally resetting local data. The initial migration creates the six application tables and the `portfolio_movements` view. Product endpoints arrive in later implementation stages.
