@@ -42,6 +42,22 @@ class TransactionalDatabase {
   lockTimeout = false;
   private tail: Promise<void> = Promise.resolve();
 
+  order = {
+    updateMany: async ({ where, data }: {
+      where: { id: number; userId: number; status: StoredOrder['status'] };
+      data: { status: StoredOrder['status'] };
+    }) => {
+      const order = this.state.orders.find((item) =>
+        item.id === where.id && item.userId === where.userId && item.status === where.status,
+      );
+      if (!order) return { count: 0 };
+      order.status = data.status;
+      return { count: 1 };
+    },
+    findFirst: async ({ where }: { where: { id: number; userId: number } }) =>
+      this.state.orders.find((item) => item.id === where.id && item.userId === where.userId) ?? null,
+  };
+
   reset(): void {
     this.state = { orders: [], requests: [] };
     this.marketClose = '10.25';
@@ -120,11 +136,15 @@ class TestAppModule {}
 
 const marketBuy = { userId: 7, instrumentId: 11, side: 'BUY', type: 'MARKET', size: 2 };
 
+function postCancel(app: INestApplication, orderId: number | string, userId = 7) {
+  return request(app.getHttpServer()).post(`/orders/${orderId}/cancel`).send({ userId });
+}
+
 function postOrder(app: INestApplication, key: string, body: Record<string, unknown> = marketBuy) {
   return request(app.getHttpServer()).post('/orders').set('Idempotency-Key', key).send(body);
 }
 
-describe('POST /orders', () => {
+describe('order endpoints', () => {
   let app: INestApplication;
 
   beforeAll(async () => {
@@ -166,16 +186,18 @@ describe('POST /orders', () => {
     expect(market.body.order.status).toBe('FILLED');
   });
 
-  it('replays the exact response and rejects a changed payload for the same key', async () => {
-    const first = await postOrder(app, 'repeat', marketBuy);
-    database.state.orders[0].status = 'CANCELLED';
+  it('replays the exact response after cancellation and rejects a changed payload for the same key', async () => {
+    const limitBuy = { ...marketBuy, type: 'LIMIT', limitPriceARS: '10.00' };
+    const first = await postOrder(app, 'repeat', limitBuy);
+    const cancelled = await postCancel(app, first.body.order.id);
+    expect(cancelled.status).toBe(200);
     database.marketClose = null;
-    const replay = await postOrder(app, 'repeat', marketBuy);
+    const replay = await postOrder(app, 'repeat', limitBuy);
     expect(replay.status).toBe(201);
     expect(replay.text).toBe(first.text);
     expect(database.state.orders).toHaveLength(1);
 
-    const changed = await postOrder(app, 'repeat', { ...marketBuy, size: 3 });
+    const changed = await postOrder(app, 'repeat', { ...limitBuy, size: 3 });
     expect(changed.status).toBe(409);
     expect(changed.body.error.code).toBe('IDEMPOTENCY_KEY_REUSED');
   });
@@ -274,5 +296,59 @@ describe('POST /orders', () => {
     expect(belowShare.body.error.code).toBe('AMOUNT_BELOW_ONE_SHARE');
     expect(database.state.orders).toHaveLength(0);
     expect(database.state.requests).toHaveLength(0);
+  });
+
+  it('cancels only the caller\'s NEW order and returns the updated order', async () => {
+    const submitted = await postOrder(app, 'cancel-success', { ...marketBuy, type: 'LIMIT', limitPriceARS: '10.00' });
+    const response = await postCancel(app, submitted.body.order.id);
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ order: { ...submitted.body.order, status: 'CANCELLED' } });
+    expect(database.state.orders[0].status).toBe('CANCELLED');
+    expect(database.state.requests[0].responseBody).toBe(submitted.text);
+  });
+
+  it('returns 404 for missing or another user\'s order without changing its status', async () => {
+    const submitted = await postOrder(app, 'cancel-ownership', { ...marketBuy, type: 'LIMIT', limitPriceARS: '10.00' });
+    const orderId = submitted.body.order.id;
+
+    const missing = await postCancel(app, orderId + 1);
+    const otherUser = await postCancel(app, orderId, 8);
+    expect(missing.status).toBe(404);
+    expect(otherUser.status).toBe(404);
+    expect(otherUser.body.error.code).toBe('NOT_FOUND');
+    expect(database.state.orders[0].status).toBe('NEW');
+  });
+
+  it('returns 409 for FILLED, REJECTED, and already CANCELLED orders', async () => {
+    const filled = await postOrder(app, 'cancel-filled', marketBuy);
+    const rejected = await postOrder(app, 'cancel-rejected', { ...marketBuy, size: 10 });
+    const pending = await postOrder(app, 'cancel-twice', { ...marketBuy, type: 'LIMIT', limitPriceARS: '10.00' });
+    expect((await postCancel(app, pending.body.order.id)).status).toBe(200);
+
+    for (const orderId of [filled.body.order.id, rejected.body.order.id, pending.body.order.id]) {
+      const response = await postCancel(app, orderId);
+      expect(response.status).toBe(409);
+      expect(response.body.error.code).toBe('ORDER_NOT_CANCELLABLE');
+    }
+    expect(database.state.orders.map((order) => order.status)).toEqual(['FILLED', 'REJECTED', 'CANCELLED']);
+  });
+
+  it('lets only one of two concurrent cancellation attempts succeed', async () => {
+    const submitted = await postOrder(app, 'cancel-concurrent', { ...marketBuy, type: 'LIMIT', limitPriceARS: '10.00' });
+    const [first, second] = await Promise.all([
+      postCancel(app, submitted.body.order.id),
+      postCancel(app, submitted.body.order.id),
+    ]);
+    expect([first.status, second.status].sort()).toEqual([200, 409]);
+    expect(database.state.orders[0].status).toBe('CANCELLED');
+  });
+
+  it('validates the cancellation path and body', async () => {
+    expect((await postCancel(app, 'invalid')).status).toBe(400);
+    expect((await postCancel(app, '0')).status).toBe(400);
+    expect((await postCancel(app, 1, 0)).status).toBe(400);
+    expect((await request(app.getHttpServer()).post('/orders/1/cancel').send({})).status).toBe(400);
+    expect(database.state.orders).toHaveLength(0);
   });
 });

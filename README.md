@@ -58,6 +58,8 @@ curl -i http://localhost:3000/health
 
 `POST /orders` requires an `Idempotency-Key` header and `userId`, `instrumentId`, `side` (`BUY` or `SELL`), `type` (`MARKET` or `LIMIT`), and exactly one of `size` or `amountARS`. LIMIT orders also require `limitPriceARS`; MARKET orders use the latest close and must omit the limit price. Monetary inputs are positive decimal strings with at most two fractional digits. Successful MARKET orders fill immediately; LIMIT orders remain NEW without reserving cash or shares. Both return HTTP 201 with an `order` object. Insufficient cash or shares creates a REJECTED order and returns HTTP 422 with `error` and `order`. Malformed requests return 400, unknown users or instruments 404, and unavailable MARKET prices 503 without creating an order. Reusing the same key and equivalent payload replays the original status and JSON body; changing the payload returns 409. A concurrent request that times out on the user lock returns a retryable 409 and can be retried with the same key. Keys persist for the database lifetime.
 
+`POST /orders/:orderId/cancel` requires a body containing `userId`. It returns HTTP 200 with the updated `order` when that user's order is NEW. Missing or other-user orders return 404; FILLED, REJECTED, and already CANCELLED orders return 409. Only one concurrent cancellation can succeed. Replaying the original `POST /orders` with its `Idempotency-Key` still returns the stored submission response.
+
 ## Run with Docker Compose
 
 After creating `.env` as above, run:
@@ -73,4 +75,4 @@ API_HOST_PORT=8080 docker compose up --build
 curl -i http://localhost:8080/health
 ```
 
-The image builds with the npm lockfile on Node.js 24 and generates Prisma Client during the build. The migration container has the Prisma CLI and seed script; the API runtime installs only production dependencies and runs as the non-root `node` user. The Docker health check calls `GET /health`. PostgreSQL data persists in the `postgres_data` volume across `docker compose down` and restarts. Use `docker compose down --volumes` only when intentionally resetting local data. The initial migration creates the six application tables and the `portfolio_movements` view. Order cancellation remains for a later implementation stage.
+The image builds with the npm lockfile on Node.js 24 and generates Prisma Client during the build. The migration container has the Prisma CLI and seed script; the API runtime installs only production dependencies and runs as the non-root `node` user. The Docker health check calls `GET /health`. PostgreSQL data persists in the `postgres_data` volume across `docker compose down` and restarts. Use `docker compose down --volumes` only when intentionally resetting local data. The initial migration creates the six application tables and the `portfolio_movements` view.

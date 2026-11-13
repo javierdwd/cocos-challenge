@@ -1,6 +1,7 @@
-import { BadRequestException, Body, Controller, Headers, Inject, Post, Res } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Headers, HttpCode, Inject, Param, Post, Res } from '@nestjs/common';
 import { OrdersService } from './orders.service.js';
 import { SubmitOrderDto } from './submit-order.dto.js';
+import { CancelOrderDto, CancelOrderParams } from './cancel-order.dto.js';
 
 interface JsonResponse {
   status(code: number): JsonResponse;
@@ -23,5 +24,11 @@ export class OrdersController {
     }
     const result = await this.ordersService.submit(body, key);
     response.status(result.httpStatus).type('application/json').send(result.responseBody);
+  }
+
+  @Post(':orderId/cancel')
+  @HttpCode(200)
+  cancelOrder(@Param() params: CancelOrderParams, @Body() body: CancelOrderDto) {
+    return this.ordersService.cancel(params.orderId, body.userId);
   }
 }

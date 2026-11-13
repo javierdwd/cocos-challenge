@@ -92,6 +92,35 @@ export class OrdersService {
       throw error;
     }
   }
+
+  async cancel(orderId: number, userId: number) {
+    const updated = await this.prisma.order.updateMany({
+      where: { id: orderId, userId, status: 'NEW' },
+      data: { status: 'CANCELLED' },
+    });
+    const order = await this.prisma.order.findFirst({ where: { id: orderId, userId } });
+    if (!order) {
+      throw new NotFoundException({ error: { code: 'NOT_FOUND', message: 'Order not found' } });
+    }
+    if (updated.count === 0) {
+      throw new ConflictException({ error: { code: 'ORDER_NOT_CANCELLABLE', message: 'Only NEW orders can be cancelled' } });
+    }
+
+    return {
+      order: {
+        id: order.id,
+        userId: order.userId,
+        instrumentId: order.instrumentId,
+        side: order.side,
+        type: order.type,
+        size: order.size,
+        priceARS: centsToMoney(moneyToCents(order.price.toString(), 'price')),
+        status: order.status,
+        datetime: order.datetime.toISOString(),
+        rejectionReason: order.rejectionReason,
+      },
+    };
+  }
 }
 
 function normalizeInput(input: SubmitOrderDto): SubmitOrderDto {
