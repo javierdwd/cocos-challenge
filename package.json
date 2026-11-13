@@ -14,7 +14,9 @@
     "db:seed": "node scripts/seed.mjs",
     "start": "node dist/main.js",
     "start:dev": "nest start --watch",
-    "test": "vitest run"
+    "test": "npm run test:unit && npm run test:functional",
+    "test:unit": "npm run prisma:generate && vitest run --exclude test/orders.functional.spec.ts",
+    "test:functional": "npm run prisma:generate && node scripts/test-functional.mjs"
   },
   "dependencies": {
     "@nestjs/common": "12.5.0",
