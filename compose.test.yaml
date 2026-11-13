@@ -1,0 +1,14 @@
+services:
+  db:
+    image: postgres:17-bookworm
+    environment:
+      POSTGRES_USER: cocos_test
+      POSTGRES_PASSWORD: ${TEST_POSTGRES_PASSWORD:?Set TEST_POSTGRES_PASSWORD}
+      POSTGRES_DB: cocos_test
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cocos_test -d cocos_test"]
+      interval: 2s
+      timeout: 2s
+      retries: 20
+    ports:
+      - "127.0.0.1::5432"

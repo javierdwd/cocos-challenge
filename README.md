@@ -44,7 +44,18 @@ psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f test/portfolio-movements.sql
 
 The smoke test rolls back its fixture rows. `portfolio_movements` exposes `source_type`, `source_id`, `user_id`, nullable `instrument_id`, `movement_type`, `share_delta`, `cash_delta_ars`, and `datetime` for FILLED trades and transfers.
 
-The server listens on port 3000 by default. Set `PORT` to choose another port. For development with automatic rebuild and restart, run `npm run start:dev` instead of `npm start`. `npm run build` generates Prisma Client before compiling; `npm run prisma:generate` regenerates it after a schema change. Run `npm test` for the API tests.
+## Tests
+
+From a clean checkout with Node.js 24, npm 11, and Docker running:
+
+```bash
+npm ci
+npm test
+```
+
+`npm test` runs the unit tests and the PostgreSQL functional order suite. Run `npm run test:unit` or `npm run test:functional` separately when needed. The functional command starts an isolated PostgreSQL 17 container from `compose.test.yaml` with a generated password and an automatically assigned loopback port, applies the Prisma migrations, runs Vitest and Supertest against the real NestJS app, then removes the test container and database. It does not read `.env`, seed the application database, or change the normal Compose stack. The suite creates its own user, instrument, market prices, and opening cash for each case and clears only the dedicated `cocos_test` database. A guard prevents the functional tests from clearing a database with a different name.
+
+The server listens on port 3000 by default. Set `PORT` to choose another port. For development with automatic rebuild and restart, run `npm run start:dev` instead of `npm start`. `npm run build` generates Prisma Client before compiling; `npm run prisma:generate` regenerates it after a schema change.
 
 ```bash
 curl -i http://localhost:3000/health
