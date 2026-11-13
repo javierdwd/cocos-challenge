@@ -1,0 +1,20 @@
+meta {
+  name: Cancel NEW order
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/orders/{{pendingOrderId}}/cancel
+  body: json
+}
+
+headers {
+  content-type: application/json
+}
+
+body:json {
+  {
+    "userId": {{userId}}
+  }
+}

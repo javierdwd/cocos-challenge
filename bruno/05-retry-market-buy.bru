@@ -1,0 +1,25 @@
+meta {
+  name: Retry MARKET buy with the same key
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/orders
+  body: json
+}
+
+headers {
+  content-type: application/json
+  Idempotency-Key: {{marketBuyKey}}
+}
+
+body:json {
+  {
+    "userId": {{userId}},
+    "instrumentId": {{instrumentId}},
+    "side": "BUY",
+    "type": "MARKET",
+    "size": 1
+  }
+}

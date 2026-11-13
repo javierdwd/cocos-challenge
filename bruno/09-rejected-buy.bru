@@ -1,0 +1,28 @@
+meta {
+  name: Submit BUY with insufficient cash
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{baseUrl}}/orders
+  body: json
+}
+
+headers {
+  content-type: application/json
+}
+
+body:json {
+  {
+    "userId": {{userId}},
+    "instrumentId": {{instrumentId}},
+    "side": "BUY",
+    "type": "MARKET",
+    "size": 1000000
+  }
+}
+
+script:pre-request {
+  req.setHeader('Idempotency-Key', bru.interpolate('{{$randomUUID}}'));
+}
