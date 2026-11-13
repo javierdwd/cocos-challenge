@@ -3,7 +3,7 @@
 - Date: 2026-11-12
 - Status: Accepted
 - Related requirements: [Orders, portfolio, and cancellation](../PRD.md)
-- GitHub issues: [#4 — Create the database schema and portfolio movement view](https://github.com/javierdwd/cocos-challenge/issues/4), [#7 — Implement portfolio endpoint and weighted average cost](https://github.com/javierdwd/cocos-challenge/issues/7), [#9 — Implement order submission, transactions and idempotency](https://github.com/javierdwd/cocos-challenge/issues/9).
+- GitHub issues: [#4 — Create the database schema and portfolio movement view](https://github.com/javierdwd/cocos-challenge/issues/4), [#7 — Implement portfolio endpoint and weighted average cost](https://github.com/javierdwd/cocos-challenge/issues/7), [#9 — Implement order submission, transactions and idempotency](https://github.com/javierdwd/cocos-challenge/issues/9), [#10 — Implement order cancellation endpoint](https://github.com/javierdwd/cocos-challenge/issues/10).
 
 ## Context and options
 
@@ -28,4 +28,4 @@ These rules keep pending orders inert while making executed orders, balances, an
 
 ## Validation
 
-Test a successful MARKET order, a persisted rejection, amount conversion, cancellation, same-key replay, changed-payload conflict, and two concurrent orders against one balance. Verify that a failed transaction leaves neither an order nor an idempotency record.
+Test a successful MARKET order, a persisted rejection, amount conversion, cancellation, concurrent cancellation, same-key replay after cancellation, changed-payload conflict, and two concurrent orders against one balance. Verify that a failed transaction leaves neither an order nor an idempotency record.
