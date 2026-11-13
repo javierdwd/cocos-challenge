@@ -129,11 +129,4 @@ describe('OrderAccountingService', () => {
     await expect(service.assess(tx, marketBuy)).rejects.toMatchObject({ status: 503 });
     expect(read).toHaveBeenCalledTimes(1);
   });
-
-  it('rejects an unsupported side or type before locking or reading balances', async () => {
-    const { tx, read } = transaction('100.00');
-    await expect(service.assess(tx, { ...marketBuy, side: 'TRANSFER' as 'BUY' })).rejects.toMatchObject({ status: 400 });
-    await expect(service.assess(tx, { ...marketBuy, type: 'STOP' as 'MARKET' })).rejects.toMatchObject({ status: 400 });
-    expect(read).not.toHaveBeenCalled();
-  });
 });

@@ -27,17 +27,8 @@ interface Resources {
 
 @Injectable()
 export class OrderAccountingService {
-  // The caller owns the transaction and must persist the resulting order before committing it.
+  // The caller validates input and persists the order in its transaction.
   async assess(tx: Prisma.TransactionClient, input: OrderAccountingInput): Promise<OrderAccountingResult> {
-    if (input.side !== 'BUY' && input.side !== 'SELL') {
-      throw new BadRequestException({ error: { code: 'VALIDATION_ERROR', message: 'side must be BUY or SELL' } });
-    }
-    if (input.type !== 'MARKET' && input.type !== 'LIMIT') {
-      throw new BadRequestException({ error: { code: 'VALIDATION_ERROR', message: 'type must be MARKET or LIMIT' } });
-    }
-    if (!Number.isInteger(input.userId) || input.userId <= 0 || !Number.isInteger(input.instrumentId) || input.instrumentId <= 0) {
-      throw new BadRequestException({ error: { code: 'VALIDATION_ERROR', message: 'userId and instrumentId must be positive integers' } });
-    }
     const lockedUsers = await tx.$queryRaw<LockedUser[]>`
       SELECT id FROM users WHERE id = ${input.userId} FOR UPDATE
     `;

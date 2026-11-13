@@ -1,6 +1,6 @@
 # Cocos Challenge Backend
 
-NestJS REST API for the Cocos Challenge. This stage exposes liveness, instrument search, and portfolio endpoints; order endpoints are planned in later issues. See [the PRD](docs/PRD.md) and [architecture decisions](docs/ADRs/README.md) for the product and technical contracts.
+NestJS REST API for the Cocos Challenge. It exposes liveness, instrument search, portfolio, and order submission endpoints. See [the PRD](docs/PRD.md) and [architecture decisions](docs/ADRs/README.md) for the product and technical contracts.
 
 ## Prerequisites
 
@@ -44,7 +44,7 @@ psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f test/portfolio-movements.sql
 
 The smoke test rolls back its fixture rows. `portfolio_movements` exposes `source_type`, `source_id`, `user_id`, nullable `instrument_id`, `movement_type`, `share_delta`, `cash_delta_ars`, and `datetime` for FILLED trades and transfers.
 
-The server listens on port 3000 by default. Set `PORT` to choose another port. For development with automatic rebuild and restart, run `npm run start:dev` instead of `npm start`. `npm run build` generates Prisma Client before compiling; `npm run prisma:generate` regenerates it after a schema change. Run `npm test` for the HTTP health test.
+The server listens on port 3000 by default. Set `PORT` to choose another port. For development with automatic rebuild and restart, run `npm run start:dev` instead of `npm start`. `npm run build` generates Prisma Client before compiling; `npm run prisma:generate` regenerates it after a schema change. Run `npm test` for the API tests.
 
 ```bash
 curl -i http://localhost:3000/health
@@ -55,6 +55,8 @@ curl -i http://localhost:3000/health
 `GET /instruments?query=pat&page=1&pageSize=20` searches share tickers and names by a trimmed, case-insensitive substring. `query` is required; `page` defaults to 1 and `pageSize` to 20, with a maximum of 100. Invalid parameters return HTTP 400 with `{"error":{"code":"VALIDATION_ERROR","message":"Invalid request parameters"}}`. Results exclude ARS, sort by ticker then ID, and return `data` (`id`, `ticker`, `name`, `type`) plus `pagination` (`page`, `pageSize`, `totalItems`, `totalPages`).
 
 `GET /users/10002/portfolio` returns `userId`, `totalValueARS`, `availableCashARS`, and `positions` with `instrumentId`, `ticker`, `name`, `size`, `marketValueARS`, and `totalReturnPct`. It combines FILLED trade and transfer movements with each held instrument's latest close. A partial sale retains weighted average purchase cost for the remaining shares. Sold-out positions are omitted; an account without movements returns zero cash, zero value, and an empty positions list. ARS amounts and percentages are two-decimal strings rounded half-up, and `totalReturnPct` is `null` for a positive zero-cost position. Invalid user IDs return HTTP 400, unknown users return 404, and a held instrument without a price returns 503.
+
+`POST /orders` requires an `Idempotency-Key` header and `userId`, `instrumentId`, `side` (`BUY` or `SELL`), `type` (`MARKET` or `LIMIT`), and exactly one of `size` or `amountARS`. LIMIT orders also require `limitPriceARS`; MARKET orders use the latest close and must omit the limit price. Monetary inputs are positive decimal strings with at most two fractional digits. Successful MARKET orders fill immediately; LIMIT orders remain NEW without reserving cash or shares. Both return HTTP 201 with an `order` object. Insufficient cash or shares creates a REJECTED order and returns HTTP 422 with `error` and `order`. Malformed requests return 400, unknown users or instruments 404, and unavailable MARKET prices 503 without creating an order. Reusing the same key and equivalent payload replays the original status and JSON body; changing the payload returns 409. A concurrent request that times out on the user lock returns a retryable 409 and can be retried with the same key. Keys persist for the database lifetime.
 
 ## Run with Docker Compose
 
@@ -71,4 +73,4 @@ API_HOST_PORT=8080 docker compose up --build
 curl -i http://localhost:8080/health
 ```
 
-The image builds with the npm lockfile on Node.js 24 and generates Prisma Client during the build. The migration container has the Prisma CLI and seed script; the API runtime installs only production dependencies and runs as the non-root `node` user. The Docker health check calls `GET /health`. PostgreSQL data persists in the `postgres_data` volume across `docker compose down` and restarts. Use `docker compose down --volumes` only when intentionally resetting local data. The initial migration creates the six application tables and the `portfolio_movements` view. Portfolio and order endpoints arrive in later implementation stages.
+The image builds with the npm lockfile on Node.js 24 and generates Prisma Client during the build. The migration container has the Prisma CLI and seed script; the API runtime installs only production dependencies and runs as the non-root `node` user. The Docker health check calls `GET /health`. PostgreSQL data persists in the `postgres_data` volume across `docker compose down` and restarts. Use `docker compose down --volumes` only when intentionally resetting local data. The initial migration creates the six application tables and the `portfolio_movements` view. Order cancellation remains for a later implementation stage.

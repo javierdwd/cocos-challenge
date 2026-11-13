@@ -3,7 +3,7 @@
 - Date: 2026-11-12
 - Status: Accepted
 - Related requirements: [Orders, portfolio, and cancellation](../PRD.md)
-- GitHub issues: [#4 — Create the database schema and portfolio movement view](https://github.com/javierdwd/cocos-challenge/issues/4), [#7 — Implement portfolio endpoint and weighted average cost](https://github.com/javierdwd/cocos-challenge/issues/7).
+- GitHub issues: [#4 — Create the database schema and portfolio movement view](https://github.com/javierdwd/cocos-challenge/issues/4), [#7 — Implement portfolio endpoint and weighted average cost](https://github.com/javierdwd/cocos-challenge/issues/7), [#9 — Implement order submission, transactions and idempotency](https://github.com/javierdwd/cocos-challenge/issues/9).
 
 ## Context and options
 
