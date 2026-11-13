@@ -1,0 +1,33 @@
+meta {
+  name: Submit LIMIT buy
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/orders
+  body: json
+}
+
+headers {
+  content-type: application/json
+}
+
+body:json {
+  {
+    "userId": {{userId}},
+    "instrumentId": {{instrumentId}},
+    "side": "BUY",
+    "type": "LIMIT",
+    "amountARS": "2000.00",
+    "limitPriceARS": "1000.00"
+  }
+}
+
+script:pre-request {
+  req.setHeader('Idempotency-Key', bru.interpolate('{{$randomUUID}}'));
+}
+
+script:post-response {
+  if (res.status === 201) bru.setVar('pendingOrderId', res.body.order.id);
+}

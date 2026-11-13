@@ -1,0 +1,28 @@
+meta {
+  name: Submit MARKET sell
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/orders
+  body: json
+}
+
+headers {
+  content-type: application/json
+}
+
+body:json {
+  {
+    "userId": {{userId}},
+    "instrumentId": {{instrumentId}},
+    "side": "SELL",
+    "type": "MARKET",
+    "size": 1
+  }
+}
+
+script:pre-request {
+  req.setHeader('Idempotency-Key', bru.interpolate('{{$randomUUID}}'));
+}
