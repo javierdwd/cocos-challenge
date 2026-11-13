@@ -1,7 +1,8 @@
 # ADR-001: Seed data and portfolio movements
 
 - Date: 2026-11-12
-- Status: Accepted
+- Status: Superseded
+- Superseded by: [ADR-004](adr-004-sample-portfolio-seed.md)
 - Related requirements: [Portfolio, orders, and cash transfers](../PRD.md)
 - GitHub issue: [#4 — Create the database schema and portfolio movement view](https://github.com/javierdwd/cocos-challenge/issues/4).
 

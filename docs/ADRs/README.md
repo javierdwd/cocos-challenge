@@ -6,6 +6,7 @@ Use an ADR to justify changes to the proposed schema described in the PRD, as re
 
 ## Decisions
 
-- [ADR-001: Seed data and portfolio movements](adr-001-portfolio-movements.md) — Accepted.
+- [ADR-001: Seed data and portfolio movements](adr-001-portfolio-movements.md) — Superseded by ADR-004.
 - [ADR-002: Technology stack](adr-002-technology-stack.md) — Accepted.
 - [ADR-003: Order semantics](adr-003-order-semantics.md) — Accepted.
+- [ADR-004: Sample portfolio seed](adr-004-sample-portfolio-seed.md) — Accepted.

@@ -28,6 +28,9 @@ try {
   const databaseUrl = `postgresql://cocos_test:${password}@127.0.0.1:${port}/cocos_test`;
   const testEnv = { ...composeEnv, DATABASE_URL: databaseUrl };
   run('npm', ['run', 'prisma:migrate:deploy'], testEnv);
+  run('npm', ['run', 'db:seed'], testEnv);
+  run('npm', ['run', 'db:seed'], testEnv);
+  run('npm', ['exec', '--', 'vitest', 'run', 'test/seeded-portfolio.functional.spec.ts'], testEnv);
   run('npm', ['exec', '--', 'vitest', 'run', 'test/orders.functional.spec.ts'], testEnv);
 } finally {
   run('docker', [...composeArgs, 'down', '--volumes', '--remove-orphans']);
