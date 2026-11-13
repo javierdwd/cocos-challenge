@@ -1,10 +1,12 @@
 -- Sample data from https://github.com/cocoscap/cocos-challenge/blob/main/database.sql
--- Account 10001, its orders, and the ARS instrument are intentionally excluded.
+-- Retain account 10001 except its invalid FILLED sale of 30 BMA shares.
+-- Cash transfers use cash_movements; the ARS instrument is excluded.
 -- The original market dates are represented as midnight UTC timestamps.
 -- Two source quotes lack open/high/low; use their close for those required fields.
 BEGIN;
 
 INSERT INTO users (id, email, account_number) VALUES
+    (1, 'emiliano@test.com', '10001'),
     (2, 'jose@test.com', '10002'),
     (3, 'francisco@test.com', '10003'),
     (4, 'juan@test.com', '10004')
@@ -214,6 +216,50 @@ FROM (VALUES
 ) AS source (instrument_id, datetime, open_price, high_price, low_price, close_price, previous_close)
 WHERE true
 ON CONFLICT (instrument_id, datetime) DO NOTHING;
+
+-- Preserve the source trades and their original states. Match immutable order
+-- fields so rerunning the seed does not recreate a NEW order after cancellation.
+INSERT INTO orders (instrument_id, user_id, size, price, side, status, type, datetime, rejection_reason)
+SELECT source.instrument_id, account.id, source.size, source.price,
+       source.side::"OrderSide", source.status::"MovementStatus", source.type::"OrderType",
+       source.datetime::timestamptz, source.rejection_reason
+FROM (VALUES
+    (47, 50, 930.00, 'BUY', 'FILLED', 'MARKET', '2023-07-12T15:31:20Z', NULL),
+    (47, 50, 920.00, 'BUY', 'CANCELLED', 'LIMIT', '2023-07-12T17:21:20Z', NULL),
+    (47, 10, 940.00, 'SELL', 'FILLED', 'MARKET', '2023-07-12T17:51:20Z', NULL),
+    (45, 50, 710.00, 'BUY', 'NEW', 'LIMIT', '2023-07-12T18:14:20Z', NULL),
+    (47, 100, 950.00, 'SELL', 'REJECTED', 'MARKET', '2023-07-12T19:11:20Z', 'INSUFFICIENT_SHARES'),
+    (31, 60, 1500.00, 'BUY', 'NEW', 'LIMIT', '2023-07-13T14:13:20Z', NULL),
+    (31, 20, 1540.00, 'BUY', 'FILLED', 'LIMIT', '2023-07-13T15:51:20Z', NULL),
+    (54, 500, 250.00, 'BUY', 'FILLED', 'MARKET', '2023-07-13T17:11:20Z', NULL)
+) AS source (instrument_id, size, price, side, status, type, datetime, rejection_reason)
+JOIN users AS account ON account.account_number = '10001'
+WHERE NOT EXISTS (
+    SELECT 1 FROM orders AS existing
+    WHERE existing.user_id = account.id
+      AND existing.instrument_id = source.instrument_id
+      AND existing.size = source.size
+      AND existing.price = source.price
+      AND existing.side = source.side::"OrderSide"
+      AND existing.type = source.type::"OrderType"
+      AND existing.datetime = source.datetime::timestamptz
+)
+ORDER BY source.datetime::timestamptz;
+
+INSERT INTO cash_movements (user_id, side, amount, status, datetime)
+SELECT account.id, source.side::"CashMovementSide", source.amount, 'FILLED', source.datetime::timestamptz
+FROM (VALUES
+    ('CASH_IN', 1000000.00, '2023-07-12T15:11:20Z'),
+    ('CASH_OUT', 100000.00, '2023-07-13T15:31:20Z')
+) AS source (side, amount, datetime)
+JOIN users AS account ON account.account_number = '10001'
+WHERE NOT EXISTS (
+    SELECT 1 FROM cash_movements AS existing
+    WHERE existing.user_id = account.id
+      AND existing.side = source.side::"CashMovementSide"
+      AND existing.amount = source.amount
+      AND existing.datetime = source.datetime::timestamptz
+);
 
 INSERT INTO cash_movements (user_id, side, amount, status, datetime)
 SELECT id, 'CASH_IN', 1000000.00, 'FILLED', '2023-07-12T15:11:20Z'::timestamptz

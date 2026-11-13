@@ -29,7 +29,7 @@ Build a Node.js REST API for a brokerage-style account. It must return a user's 
 - A documented data-access approach, whether an ORM or direct SQL.
 - Prices and monetary values denominated in ARS.
 - Persistence of orders, including rejected orders.
-- Portfolio calculations based on FILLED trades in `orders` and FILLED transfers in `cash_movements`, combined by the view in [ADR-001](ADRs/adr-001-portfolio-movements.md).
+- Portfolio calculations based on FILLED trades in `orders` and FILLED transfers in `cash_movements`, combined by the view in [ADR-004](ADRs/adr-004-sample-portfolio-seed.md).
 - Documentation of material assumptions and design decisions.
 
 ### Optional
@@ -51,7 +51,7 @@ Given a user, return:
 - Available cash in ARS.
 - Each held asset's ticker/name, whole-share quantity, market value in ARS, and total return percentage.
 
-Derive cash and holdings from FILLED trade and transfer movements in the portfolio view defined by [ADR-001](ADRs/adr-001-portfolio-movements.md). Use `orders.size` for share quantity and `cash_movements.amount` for transfers. The chosen seed omits the example ARS instrument; the portfolio still reports cash in ARS. Use the latest `marketdata.close` as the current asset price. Calculate total position return using weighted average purchase cost as defined in [ADR-003](ADRs/adr-003-order-semantics.md). Do not expose daily return in this challenge.
+Derive cash and holdings from FILLED trade and transfer movements in the portfolio view defined by [ADR-004](ADRs/adr-004-sample-portfolio-seed.md). Use `orders.size` for share quantity and `cash_movements.amount` for transfers. The chosen seed omits the example ARS instrument; the portfolio still reports cash in ARS. Use the latest `marketdata.close` as the current asset price. Calculate total position return using weighted average purchase cost as defined in [ADR-003](ADRs/adr-003-order-semantics.md). Do not expose daily return in this challenge.
 
 ### FR-02 — Instrument search
 
@@ -74,7 +74,7 @@ Permit a user to cancel only their NEW order. A successful cancellation changes 
 
 ### FR-05 — Cash transfers
 
-Represent incoming transfers with side CASH_IN and outgoing transfers with side CASH_OUT in `cash_movements`, as decided in [ADR-001](ADRs/adr-001-portfolio-movements.md). Include their applicable FILLED movements in cash calculations. Transfers are seed data; creating transfers through the API is out of scope.
+Represent incoming transfers with side CASH_IN and outgoing transfers with side CASH_OUT in `cash_movements`, as decided in [ADR-004](ADRs/adr-004-sample-portfolio-seed.md). Include their applicable FILLED movements in cash calculations. Transfers are seed data; creating transfers through the API is out of scope.
 
 ## 5. Order states
 
@@ -98,7 +98,7 @@ The proposed database has these tables:
 
 `marketdata` contains the last two days of instrument prices. Use the most recent row by `datetime` for each instrument. `close` is the latest price. If daily return is exposed, calculate it as `(close - previousClose) / previousClose * 100`, with defined behavior when `previousClose` is zero or missing. The table descriptions above come from the challenge brief. Any schema modification must be justified in an ADR and reflected in setup instructions.
 
-The brief describes calculating from `orders.size` and modeling ARS as a MONEDA instrument. [ADR-001](ADRs/adr-001-portfolio-movements.md) records the accepted technical deviation: trades remain in `orders`, transfers move to `cash_movements`, and a view combines both for portfolio calculations. Cash and holdings behavior remains required.
+The brief describes calculating from `orders.size` and modeling ARS as a MONEDA instrument. [ADR-004](ADRs/adr-004-sample-portfolio-seed.md) records the accepted technical deviation: trades remain in `orders`, transfers move to `cash_movements`, and a view combines both for portfolio calculations. Cash and holdings behavior remains required.
 
 ## 7. API contract
 
@@ -121,4 +121,4 @@ IDs and share counts are integers. All ARS amounts, prices, and percentages are 
 
 ## 9. Decisions
 
-[ADR-001](ADRs/adr-001-portfolio-movements.md) records the chosen data model, portfolio view, and seed policy. Retained sample accounts start empty except account `10002`, which receives an opening CASH_IN. [ADR-002](ADRs/adr-002-technology-stack.md) records the stack. [ADR-003](ADRs/adr-003-order-semantics.md) records order validation, cost basis, transactions, idempotency, and cancellation behavior. Any further implementation choice that changes these contracts requires an ADR update.
+[ADR-004](ADRs/adr-004-sample-portfolio-seed.md) records the data model, portfolio view, and revised seed policy. Account `10001` retains its sample trades and transfers except the inconsistent FILLED sale of 30 BMA shares; account `10002` has an opening CASH_IN, and accounts `10003` and `10004` start empty. [ADR-002](ADRs/adr-002-technology-stack.md) records the stack. [ADR-003](ADRs/adr-003-order-semantics.md) records order validation, cost basis, transactions, idempotency, and cancellation behavior. Any further implementation choice that changes these contracts requires an ADR update.
